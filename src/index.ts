@@ -3,8 +3,18 @@ import bodyParser from 'body-parser';
 import { connectDatabase } from './database/mongodb';
 import { PORT } from './config';
 import authRoutes from "./routes/auth.route";
+import cors from 'cors';
+
 
 const app: Application = express();
+
+const corsOptions = {
+  origin: "http://localhost:3000",  // only allow your frontend origin
+  credentials: true,                // allow cookies
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
