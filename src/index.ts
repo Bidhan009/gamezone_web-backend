@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import bodyParser from 'body-parser';
+import path from 'path';
 import { connectDatabase } from './database/mongodb';
 import { PORT } from './config';
 import authRoutes from "./routes/auth.route";
@@ -9,7 +10,7 @@ import cors from 'cors';
 const app: Application = express();
 
 const corsOptions = {
-  origin: "http://localhost:3000",  // only allow your frontend origin
+  origin: ["http://localhost:3000", "http://localhost:8080"],  // Flutter web default port
   credentials: true,                // allow cookies
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -18,6 +19,9 @@ app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.get('/', (req: Request, res: Response) => {

@@ -9,7 +9,8 @@ const UserSchema: Schema = new Schema<UserType>(
             type: String,
             enum: ['user', 'admin'],
             default: 'user',
-        }
+        },
+        profileImage: { type: String, default: null }
     },
     {
         timestamps: true, // auto createdAt and updatedAt

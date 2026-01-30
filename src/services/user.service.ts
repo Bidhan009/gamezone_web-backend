@@ -48,4 +48,28 @@ export class UserService {
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' }); // 30 days
         return { token, user }
     }
+
+    async getUserById(userId: string) {
+        const user = await userRepository.getUserById(userId);
+        if (!user) {
+            throw new HttpError(404, "User not found");
+        }
+        return user;
+    }
+
+    async updateProfileImage(userId: string, imageUrl: string) {
+        const updatedUser = await userRepository.updateUser(userId, { profileImage: imageUrl });
+        if (!updatedUser) {
+            throw new HttpError(404, "User not found");
+        }
+        return updatedUser;
+    }
+
+    async updateUserProfile(userId: string, updateData: { fullName?: string; email?: string }) {
+        const updatedUser = await userRepository.updateUser(userId, updateData);
+        if (!updatedUser) {
+            throw new HttpError(404, "User not found");
+        }
+        return updatedUser;
+    }
 }

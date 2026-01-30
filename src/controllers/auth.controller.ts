@@ -44,5 +44,21 @@ export class AuthController {
             );
         }
     }
+
+    async logout(req: Request, res: Response) {
+        try {
+            // For JWT-based auth, logout is typically handled client-side
+            // by removing the token. Server-side logout could involve token blacklisting
+            res.status(200).json({
+                success: true,
+                message: "Logout successful"
+            });
+        } catch (error: any) {
+            res.status(500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
     
 }
