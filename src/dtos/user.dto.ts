@@ -5,7 +5,8 @@ import { UserSchema } from "../types/user.type";
 export const CreateUserDTO = UserSchema.pick({
     fullName: true,
     email: true,
-    password: true
+    password: true,
+    profileImage:true
 }).extend({
     confirmPassword: z.string().min(6),
     phone: z.string().optional() // <-- add this line

@@ -11,10 +11,10 @@ export class AdminUserService {
         if(emailCheck){
             throw new HttpError(403, "Email already in use");
         }
-        const usernameCheck = await userRepository.getUserByUsername(data.username);
-        if(usernameCheck){
-            throw new HttpError(403, "Username already in use");
-        }
+        // const usernameCheck = await userRepository.getUserByUsername(data.username);
+        // if(usernameCheck){
+        //     throw new HttpError(403, "Username already in use");
+        // }
         // hash password
         const hashedPassword = await bcryptjs.hash(data.password, 10); // 10 - complexity
         data.password = hashedPassword;

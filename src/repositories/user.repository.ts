@@ -12,21 +12,22 @@ export interface IUserRepository {
 }
 // MongoDb Implementation of UserRepository
 export class UserRepository implements IUserRepository {
-    getUserByUsername(username: string): Promise<IUser | null> {
-        throw new Error("Method not implemented.");
-    }
+    
     async createUser(userData: Partial<IUser>): Promise<IUser> {
         const user = new UserModel(userData); 
         return await user.save();
     }
     async getUserByEmail(email: string): Promise<IUser | null> {
-        const user = await UserModel.findOne({ "email": email })
+    const user = await UserModel.findOne({
+        email: { $regex: new RegExp(`^${email}$`, "i") }
+    });
+    return user;
+    }
+
+    async getUserByUsername(username: string): Promise<IUser | null> {
+        const user = await UserModel.findOne({ "username": username })
         return user;
     }
-    // async getUserByUsername(username: string): Promise<IUser | null> {
-    //     const user = await UserModel.findOne({ "username": username })
-    //     return user;
-    // }
 
     async getUserById(id: string): Promise<IUser | null> {
         // UserModel.findOne({ "_id": id });
@@ -48,5 +49,10 @@ export class UserRepository implements IUserRepository {
         // UserModel.deleteOne({ _id: id });
         const result = await UserModel.findByIdAndDelete(id);
         return result ? true : false;
+    }
+    async updateOneUser(id: string, data: Partial<IUser>): Promise<IUser | null> {
+        //UserModel.updateOne({"_id":id}, {$set:data})
+        const updateUser = await UserModel.findByIdAndUpdate(id, data, {new:true});
+        return updateUser;
     }
 }

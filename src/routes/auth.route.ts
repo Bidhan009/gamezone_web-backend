@@ -1,19 +1,41 @@
 import { Router } from "express";
+
 import { AuthController } from "../controllers/auth.controller";
-import { ProfileController } from "../controllers/profile.controller";
-import { authenticateToken } from "../middleware/auth.middleware";
+
+import { authorizationMiddleware } from "../middleware/auth.middleware";
+
+import { uploads } from "../middleware/upload.middleware";
+
+
 
 let authController = new AuthController();
-let profileController = new ProfileController();
+
 const router = Router();
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
-router.post("/logout", authController.logout);
 
-// Profile routes
-router.get("/profile", authenticateToken, profileController.getProfile);
-router.put("/profile", authenticateToken, profileController.updateProfile);
-router.post("/profile/upload", authenticateToken, profileController.uploadProfileImage);
+
+router.post("/register", authController.register)
+
+router.post("/login", authController.login)
+
+// add remaning routes like login, logout, etc.
+
+
+
+router.get("/whoami", authorizationMiddleware, authController.getProfile);
+
+router.put(
+
+    '/update-profile',
+
+    authorizationMiddleware,
+
+    uploads.single("profilePicture"), // "image"-fields name from frontend/client
+
+    authController.updateProfile
+
+)
+
+
 
 export default router;

@@ -1,52 +1,64 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../config';
+import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config";
+import { Request, Response, NextFunction } from "express";
+import { UserRepository } from "../repositories/user.repository";
+import { HttpError } from "../errors/http-error";
+import { IUser } from "../models/user.model";
 
-// 1. Extend the Request type to include the user payload
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    fullName: string;
-    email: string;
-    role: string;
-  };
+declare global{
+    namespace Express{
+        interface Request {
+            user?:Record<string, any> | IUser;
+        }
+    }
 }
 
-// 2. The core authentication middleware
-export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+export interface AuthRequest extends Request {
+    user?: Record<string, any> | IUser;
+}
+let userRepository = new UserRepository();
 
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Access token required' });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
-    if (err) {
-      return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+export const authorizationMiddleware = async(req: Request, res: Response, next: NextFunction) =>{
+    try{
+        const authHeader = req.headers.authorization;
+        if(!authHeader || !authHeader.startsWith("Bearer")){
+            throw new HttpError(401, "Unauthorized, header malformed");
+        }
+        const token = authHeader.split(" ")[1]; // "Beared <string>" [1] -> <string>
+        if(!token){
+            throw new HttpError(401, "Unauthorized, token missing");
+        }
+        const decodedtoken = jwt.verify(token, JWT_SECRET) as Record<string, any>; // verify with secret
+        if(!decodedtoken || !decodedtoken.id){
+            throw new HttpError(401, "Unauthorized, token invalid");
+        }
+        const user = await userRepository.getUserById(decodedtoken.id);
+        if(!user){
+            throw new HttpError(401, "Unauthorized, User not found");
+        }
+        //attach user to request object
+        req.user = user;
+        next();
     }
-
-    req.user = decoded; // The payload must include the 'role' property
-    next();
-  });
-};
-
-// 3. The Role-Based Authorization Middleware (The "Admin" implementation)
-export const authorizeRole = (requiredRole: string) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    // Ensure the user is authenticated first
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Authentication required' });
+    catch (error: Error | any){
+        return res.status(401).json({success:false, message:error.message || "Unauthorized"});
     }
-
-    // Check if the user's role matches the required role
-    if (req.user.role !== requiredRole) {
-      return res.status(403).json({ 
-        success: false, 
-        message: `Forbidden: Requires ${requiredRole} role` 
-      });
+}
+// any function after authorizedMiddleware can access req.user
+export const adminMiddleware = async (
+    req: Request, res: Response, next: NextFunction
+) => {
+    try {
+        if (!req.user) {
+            throw new HttpError(401, 'Unauthorized no user info');
+        }
+        if (req.user.role !== 'admin') {
+            throw new HttpError(403, 'Forbidden not admin');
+        }
+        return next();
+    } catch (err: Error | any) {
+        return res.status(err.statusCode || 500).json(
+            { success: false, message: err.message }
+        )
     }
-
-    next();
-  };
-};
+}

@@ -3,9 +3,14 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import { connectDatabase } from './database/mongodb';
 import { PORT } from './config';
+import dotenv from 'dotenv';
 import authRoutes from "./routes/auth.route";
 import cors from 'cors';
 
+dotenv.config();
+console.log(process.env.PORT);
+
+import adminRoutes from './routes/admin/admin.route';
 
 const app: Application = express();
 
@@ -22,6 +27,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/api/admin/users',adminRoutes)
 
 app.use('/api/auth', authRoutes);
 app.get('/', (req: Request, res: Response) => {

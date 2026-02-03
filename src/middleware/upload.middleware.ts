@@ -1,28 +1,40 @@
-import { Router } from 'express';
-import { uploads } from '../middleware/upload.middleware';
-import { authenticateToken } from '../middleware/auth.middleware';
-import { UserController } from '../controllers/auth.controller';
+import multer from "multer";
+import uuid from "uuid";
+import path from "path";
+import fs from "fs";
 
-const router = Router();
-const userController = new UserController();
+// Ensure the uploads directory exists
+// __dirname is the directory of the current module
+const uploadDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+} 
 
-// Example: Uploading a profile picture
-router.post(
-  '/profile/upload',
-  authenticateToken,           // 1. Check if user is logged in
-  uploads.single('avatar'),    // 2. Look for a file in the 'avatar' field
-  (req, res) => {
-    // If successful, the file info is available in req.file
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = uuid.v4();
+        const extension = path.extname(file.originalname);
+        cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
     }
-    
-    // In Clean Architecture, you would pass req.file.path to your Use Case
-    res.status(200).json({
-      message: 'File uploaded successfully!',
-      filePath: req.file.path 
-    });
-  }
-);
+});
+const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    // Accept images only
+    if (!file.mimetype.startsWith('image/')) {
+        return cb(new Error('Only image files are allowed!'));
+    }
+    cb(null, true);
+};
+const upload = multer({ 
+    storage: storage, 
+    fileFilter: fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5 MB file size limit
+});
 
-export { uploads };
+export const uploads = {
+    single: (fieldName: string) => upload.single(fieldName),
+    array: (fieldName: string, maxCount: number) => upload.array(fieldName, maxCount),
+    fields: (fieldsArray: { name: string; maxCount?: number }[]) => upload.fields(fieldsArray)
+};
