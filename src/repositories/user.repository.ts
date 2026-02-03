@@ -1,7 +1,7 @@
 import { UserModel, IUser } from "../models/user.model";
 export interface IUserRepository {
     getUserByEmail(email: string): Promise<IUser | null>;
-    // getUserByUsername(username: string): Promise<IUser | null>;
+    getUserByUsername(username: string): Promise<IUser | null>;
     // Additional
     // 5 common database queries for entity
     createUser(userData: Partial<IUser>): Promise<IUser>;
@@ -12,6 +12,9 @@ export interface IUserRepository {
 }
 // MongoDb Implementation of UserRepository
 export class UserRepository implements IUserRepository {
+    getUserByUsername(username: string): Promise<IUser | null> {
+        throw new Error("Method not implemented.");
+    }
     async createUser(userData: Partial<IUser>): Promise<IUser> {
         const user = new UserModel(userData); 
         return await user.save();
