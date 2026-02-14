@@ -1,4 +1,4 @@
-import { CreateUserDTO, LoginUserDTO } from "../dtos/user.dto";
+import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 
 import { UserRepository } from "../repositories/user.repository";
 
@@ -144,6 +144,14 @@ export class UserService {
 
         return updatedUser;
 
+    }
+
+    async updateUser(userId: string, updateData: UpdateUserDTO) {
+        const updatedUser = await userRepository.updateUser(userId, updateData);
+        if (!updatedUser) {
+            throw new HttpError(404, "User not found");
+        }
+        return updatedUser;
     }
 
 }
