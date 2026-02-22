@@ -116,42 +116,52 @@ export class UserService {
 
 
 
-    async updateProfileImage(userId: string, imageUrl: string) {
+    // async updateProfileImage(userId: string, imageUrl: string) {
 
-        const updatedUser = await userRepository.updateUser(userId, { profileImage: imageUrl });
+    //     const updatedUser = await userRepository.updateUser(userId, { profileImage: imageUrl });
 
-        if (!updatedUser) {
+    //     if (!updatedUser) {
 
-            throw new HttpError(404, "User not found");
+    //         throw new HttpError(404, "User not found");
 
-        }
+    //     }
 
-        return updatedUser;
+    //     return updatedUser;
 
+    // }
+
+
+
+    // async updateUserProfile(userId: string, updateData: { fullName?: string; email?: string }) {
+
+    //     const updatedUser = await userRepository.updateUser(userId, updateData);
+
+    //     if (!updatedUser) {
+
+    //         throw new HttpError(404, "User not found");
+
+    //     }
+
+    //     return updatedUser;
+
+    // }
+
+    async updateUser(
+    userId: string,
+    // updateData: {
+    //     fullName?: string;
+    //     email?: string;
+    //     profileImage?: string;
+    // }
+    updateData: UpdateUserDTO
+) {
+    const updatedUser = await userRepository.updateUser(userId, updateData);
+
+    if (!updatedUser) {
+        throw new HttpError(404, "User not found");
     }
 
-
-
-    async updateUserProfile(userId: string, updateData: { fullName?: string; email?: string }) {
-
-        const updatedUser = await userRepository.updateUser(userId, updateData);
-
-        if (!updatedUser) {
-
-            throw new HttpError(404, "User not found");
-
-        }
-
-        return updatedUser;
-
-    }
-
-    async updateUser(userId: string, updateData: UpdateUserDTO) {
-        const updatedUser = await userRepository.updateUser(userId, updateData);
-        if (!updatedUser) {
-            throw new HttpError(404, "User not found");
-        }
-        return updatedUser;
-    }
+    return updatedUser;
+}
 
 }
