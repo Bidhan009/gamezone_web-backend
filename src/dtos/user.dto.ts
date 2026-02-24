@@ -6,10 +6,11 @@ export const CreateUserDTO = UserSchema.pick({
     fullName: true,
     email: true,
     password: true,
-    profileImage:true
+    profileImage:true,
+    role: true
 }).extend({
     confirmPassword: z.string().min(6),
-    phone: z.string().optional() // <-- add this line
+    phone: z.string().optional()
 }).refine(
     (data) => data.password === data.confirmPassword,
     {

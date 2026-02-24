@@ -162,6 +162,18 @@ export class UserService {
     }
 
     return updatedUser;
+} 
+
+    async getAllUsers() {
+    return await userRepository.getAllUsers();
+}
+
+async deleteUser(userId: string) {
+    const deleted = await userRepository.deleteUser(userId);
+    if (!deleted) {
+        throw new HttpError(404, "User not found");
+    }
+    return { message: "User deleted successfully" };
 }
 
 }

@@ -28,10 +28,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-app.use('/api/admin/users', adminRoutes)
+app.use('/api/admin', adminRoutes)
 app.use('/api/products', productRoutes);
-
 app.use('/api/auth', authRoutes);
+
 app.get('/', (req: Request, res: Response) => {
     return res.status(200).json({ success: "true", message: "Welcome to the API" });
 });

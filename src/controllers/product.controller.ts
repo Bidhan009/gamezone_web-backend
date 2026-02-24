@@ -9,48 +9,35 @@ export class ProductController {
 
     async createProduct(req: Request, res: Response) {
         try {
-            console.log('=== CREATE PRODUCT DEBUG ===');
-            console.log('req.file exists:', !!req.file);
-            console.log('req.file:', req.file);
-            console.log('req.body:', req.body);
-            
             // Handle both FormData and JSON requests
             let productData;
             
             if (req.file) {
                 // FormData request - parse req.body (which contains strings)
-                console.log('Processing FormData with file...');
                 productData = {
                     name: req.body.name,
                     price: req.body.price,
                     category: req.body.category,
                     stock: req.body.stock,
                     description: req.body.description,
-                    imageUrl: req.file.path
+                    imageUrl: `/uploads/${req.file.filename}`
                 };
-                console.log('Product data with imageUrl:', productData);
             } else {
                 // Regular JSON request
-                console.log('Processing JSON request (no file)...');
                 productData = req.body;
             }
             
             const parsedData = CreateProductDTO.safeParse(productData);
             if (!parsedData.success) {
-                console.log('Validation failed:', parsedData.error);
                 return res.status(400).json({ 
                     success: false, 
                     message: z.prettifyError(parsedData.error) 
                 });
             }
             
-            console.log('Final parsed data:', parsedData.data);
             const product = await productService.createProduct(parsedData.data);
-            console.log('Created product:', product);
-            
             return res.status(201).json({ success: true, data: product });
         } catch (error: any) {
-            console.error('Create product error:', error);
             return res.status(error.statusCode || 500).json({ 
                 success: false, 
                 message: error.message || "Failed to create product" 
@@ -85,7 +72,7 @@ export class ProductController {
                 // FormData request - parse req.body (which contains strings)
                 updateData = {
                     ...req.body,
-                    imageUrl: req.file.path
+                    imageUrl: `/uploads/${req.file.filename}`
                 };
             } else {
                 // Regular JSON request

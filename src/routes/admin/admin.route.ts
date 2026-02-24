@@ -25,5 +25,7 @@ router.get("/products", productController.getAllProducts);
 router.put("/products/:id", uploads.single("productImage"), productController.updateProduct);
 router.delete("/products/:id", productController.deleteProduct);
 router.get("/products/:id", productController.getProductById);
+console.log("Admin routes loaded");
+
 
 export default router;

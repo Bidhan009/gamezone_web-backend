@@ -5,6 +5,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.route';
 import adminRoutes from './routes/admin/admin.route';
 import productRoutes from './routes/product.route';
+import userRoutes from './routes/user.route';
 
 const app: Application = express();
 
@@ -23,9 +24,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes
-app.use('/api/admin/users', adminRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check endpoint for testing
 app.get('/', (req: Request, res: Response) => {
