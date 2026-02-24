@@ -47,8 +47,17 @@ export class ProductController {
 
     async getAllProducts(req: Request, res: Response) {
         try {
-            const products = await productService.getAllProducts();
-            return res.status(200).json({ success: true, data: products });
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            
+            const result = await productService.getProductsPaginated(page, limit);
+            return res.status(200).json({ 
+                success: true, 
+                data: result.data,
+                total: result.total,
+                page: result.page,
+                totalPages: result.totalPages
+            });
         } catch (error: any) {
             return res.status(error.statusCode || 500).json({ success: false, message: error.message });
         }
@@ -59,7 +68,8 @@ export class ProductController {
             const product = await productService.getProductById(req.params.id);
             return res.status(200).json({ success: true, data: product });
         } catch (error: any) {
-            return res.status(error.statusCode || 500).json({ success: false, message: error.message });
+            const statusCode = error.statusCode || 500;
+            return res.status(statusCode).json({ success: false, message: error.message });
         }
     }
 
