@@ -52,10 +52,21 @@ export class AdminUserController {
                 )
             }
             
-            if(req.file){   
-                parsedData.data.profileImage = `/uploads/${req.file.filename}`;
+            const updateData = parsedData.data;
+            
+            // Handle profile image updates
+            if (req.file) {
+                // New image uploaded
+                updateData.profileImage = `/uploads/${req.file.filename}`;
+            } else if (req.body.removeProfileImage === 'true') {
+                // User explicitly removed the image
+                updateData.profileImage = null;
+            } else {
+                // User didn't touch the image - remove profileImage from updateData
+                // so it doesn't overwrite the existing value
+                delete updateData.profileImage;
             }
-            const updateData: UpdateUserDTO = parsedData.data;
+
             const updatedUser = await adminUserService.updateUser(userId, updateData);
             return res.status(200).json(
                 { success: true, message: "User Updated", data: updatedUser }
