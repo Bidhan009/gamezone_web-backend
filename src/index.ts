@@ -12,6 +12,8 @@ console.log(process.env.PORT);
 
 import adminRoutes from './routes/admin/admin.route';
 import productRoutes from './routes/product.route';
+import userRoutes from './routes/user.route';
+import cartRoutes from './routes/cart.route';
 
 const app: Application = express();
 
@@ -31,6 +33,8 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/api/admin', adminRoutes)
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/cart', cartRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     return res.status(200).json({ success: "true", message: "Welcome to the API" });
