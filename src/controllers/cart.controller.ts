@@ -10,12 +10,22 @@ export class CartController {
   getCart = async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.user?._id.toString();
-      if (!userId) {
+      if (!userId || !req.user) {
         return res.status(401).json({ success: false, message: "User not authenticated" });
       }
 
       const cart = await cartService.getCart(userId);
-      return res.status(200).json({ success: true, data: cart });
+      return res.status(200).json({ 
+        success: true, 
+        data: {
+          ...cart,
+          currentUser: {
+            _id: req.user._id,
+            fullName: req.user.fullName,
+            email: req.user.email
+          }
+        }
+      });
     } catch (error: any) {
       return res.status(error.statusCode || 500).json({
         success: false,

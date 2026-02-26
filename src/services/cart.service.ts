@@ -20,7 +20,11 @@ export interface CartItem {
 
 export interface CartResponse {
   _id: string;
-  user: string;
+  user: {
+    _id: string;
+    fullName: string;
+    email: string;
+  };
   items: CartItem[];
   totalItems: number;
   totalPrice: number;
@@ -49,7 +53,11 @@ export class CartService {
 
     return {
       _id: cart._id.toString(),
-      user: cart.user.toString(),
+      user: {
+        _id: cart.user._id?.toString() || cart.user.toString(),
+        fullName: cart.user.fullName || 'Unknown User',
+        email: cart.user.email || 'unknown@example.com'
+      },
       items,
       totalItems,
       totalPrice: Math.round(totalPrice * 100) / 100,
