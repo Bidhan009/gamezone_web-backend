@@ -7,6 +7,7 @@ import adminRoutes from './routes/admin/admin.route';
 import productRoutes from './routes/product.route';
 import userRoutes from './routes/user.route';
 import cartRoutes from './routes/cart.route';
+import orderRoutes from './routes/order.route';
 
 const app: Application = express();
 
@@ -30,6 +31,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Health check endpoint for testing
 app.get('/', (req: Request, res: Response) => {

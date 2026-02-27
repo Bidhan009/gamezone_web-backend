@@ -6,6 +6,7 @@ import { PORT } from './config';
 import dotenv from 'dotenv';
 import authRoutes from "./routes/auth.route";
 import cors from 'cors';
+import orderRoutes from './routes/order.route';
 
 dotenv.config();
 console.log(process.env.PORT);
@@ -35,6 +36,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     return res.status(200).json({ success: "true", message: "Welcome to the API" });
