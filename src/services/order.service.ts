@@ -7,6 +7,7 @@ const cartRepository = new CartRepository();
 const orderRepository = new OrderRepository();
 
 export class OrderService {
+  orderRepository = orderRepository;
   async createOrder(userId: string, orderData: any) {
     // Get the user's cart
     const cart = await cartRepository.findByUserId(userId);
@@ -52,6 +53,6 @@ export class OrderService {
   }
 
   async getUserOrders(userId: string) {
-    return await orderRepository.findByUserId(userId);
+    return await this.orderRepository.findByUserId(userId);
   }
 }
