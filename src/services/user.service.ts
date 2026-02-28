@@ -116,25 +116,9 @@ export class UserService {
 
 
 
-    // async updateProfileImage(userId: string, imageUrl: string) {
+    // async updateUserProfile(fullName: string, email:string, imageUrl: string) {
 
-    //     const updatedUser = await userRepository.updateUser(userId, { profileImage: imageUrl });
-
-    //     if (!updatedUser) {
-
-    //         throw new HttpError(404, "User not found");
-
-    //     }
-
-    //     return updatedUser;
-
-    // }
-
-
-
-    // async updateUserProfile(userId: string, updateData: { fullName?: string; email?: string }) {
-
-    //     const updatedUser = await userRepository.updateUser(userId, updateData);
+    //     const updatedUser = await this.updateUser(fullName, email, { profileImage: imageUrl });
 
     //     if (!updatedUser) {
 
@@ -145,6 +129,22 @@ export class UserService {
     //     return updatedUser;
 
     // }
+
+
+
+    async updateUserProfile(userId: string, updateData: { fullName?: string; email?: string }) {
+
+        const updatedUser = await userRepository.updateUser(userId, updateData);
+
+        if (!updatedUser) {
+
+            throw new HttpError(404, "User not found");
+
+        }
+
+        return updatedUser;
+
+    }
 
     async updateUser(
     userId: string,

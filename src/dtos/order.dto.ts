@@ -20,3 +20,14 @@ export const CreateOrderDTO = z.object({
   paymentStatus: z.string(), // "pending"
   status: z.string(), // "pending"
 });
+
+//Added code
+export const UpdateOrderStatusDTO = z.object({
+  status: z.enum([
+    "pending",
+    "paid",
+    "shipped",
+    "completed",
+    "cancelled",
+  ]),
+});

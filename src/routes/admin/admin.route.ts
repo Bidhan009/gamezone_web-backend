@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { authorizationMiddleware, adminMiddleware } from "../../middleware/auth.middleware";
 import { AdminUserController } from "../../controllers/admin/user.controller";
+import { AdminOrderController } from "../../controllers/admin/order.controller";
 import { ProductController } from "../../controllers/product.controller";
 import { uploads } from "../../middleware/upload.middleware";
 
 let adminUserController = new AdminUserController();
+let adminOrderController = new AdminOrderController();
 let productController = new ProductController();
 
 const router = Router();
@@ -25,7 +27,13 @@ router.get("/products", productController.getAllProducts);
 router.put("/products/:id", uploads.single("productImage"), productController.updateProduct);
 router.delete("/products/:id", productController.deleteProduct);
 router.get("/products/:id", productController.getProductById);
-console.log("Admin routes loaded");
 
+// Order management routes
+router.get("/orders/stats", adminOrderController.getOrderStats);
+router.get("/orders", adminOrderController.getAllOrders);
+router.get("/orders/:orderId", adminOrderController.getOrderById);
+router.put("/orders/:orderId", adminOrderController.updateOrderStatus);
+
+console.log("Admin routes loaded");
 
 export default router;

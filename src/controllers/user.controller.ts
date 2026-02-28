@@ -50,7 +50,12 @@ export class UserController {
                 });
             }
 
-            const updatedUser = await userService.updateUser(userId, parsedData.data);
+            const updateData: any = { ...parsedData.data };
+            if (req.file) {
+                updateData.profileImage = `/uploads/${req.file.filename}`;
+            }
+
+            const updatedUser = await userService.updateUser(userId, updateData);
             return res.status(200).json({
                 success: true,
                 message: "User updated successfully",

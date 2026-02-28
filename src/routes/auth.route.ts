@@ -30,7 +30,7 @@ router.put(
 
     authorizationMiddleware,
 
-    uploads.single("profilePicture"), // "image"-fields name from frontend/client
+    uploads.single("profileImage"), // field must match front-end FormData
 
     authController.updateProfile
 

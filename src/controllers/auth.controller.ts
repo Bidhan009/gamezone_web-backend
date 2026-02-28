@@ -118,7 +118,8 @@ export class AuthController {
             
             // Handle profile picture from Multer
             if (req.file) {
-                updateData.profileImage = req.file.path;
+                // store relative path so frontend can prefix API base URL later
+                updateData.profileImage = `/uploads/${req.file.filename}`;
             }
 
             const updatedUser = await userService.updateUser(userId, updateData);
