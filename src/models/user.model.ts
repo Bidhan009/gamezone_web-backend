@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema } from "mongoose";
 import { UserType } from "../types/user.type";
+import { string } from "zod";
 const UserSchema: Schema = new Schema<UserType>(
     {
         fullName: { type: String, required: true },
@@ -9,7 +10,9 @@ const UserSchema: Schema = new Schema<UserType>(
             type: String,
             enum: ['user', 'admin'],
             default: 'user',
-        }
+        },
+        profileImage: { type: String, default: null },
+        phone: {type:string, default:null}
     },
     {
         timestamps: true, // auto createdAt and updatedAt
