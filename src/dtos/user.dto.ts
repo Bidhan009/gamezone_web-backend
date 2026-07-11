@@ -6,8 +6,8 @@ export const CreateUserDTO = UserSchema.pick({
     fullName: true,
     email: true,
     password: true,
-    profileImage:true,
-    role: true
+    profileImage: true
+    // role intentionally excluded — kaile ni client-controlled hunu hunna at registration
 }).extend({
     confirmPassword: z.string().min(6),
     phone: z.string().optional()
