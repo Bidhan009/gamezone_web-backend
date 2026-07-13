@@ -27,7 +27,7 @@ export class UserService {
     const hashedPassword = await bcryptjs.hash(data.password, 10);
     data.password = hashedPassword;
 
-    // Force role to 'user' for all public registrations — role can ONLY be
+    // Force role to 'user' for all public registrations — role can only be
     // changed via the admin-protected user management endpoints
     const newUser = await userRepository.createUser({
         ...data,

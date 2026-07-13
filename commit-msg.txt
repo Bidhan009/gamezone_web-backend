@@ -1,0 +1,22 @@
+Fix critical security bug: users could make themselves admin via profile update
+
+Found that the profile update endpoint (used for things like changing
+your name or photo) was accepting ANY field the user sent, including
+role. This meant any logged-in user, even a totally normal account,
+could send a request to update their own profile with role admin
+and instantly become an admin.
+
+Confirmed this live - logged in as a normal test account, sent a
+profile update with just role: admin, and the account was
+immediately promoted to admin in the database.
+
+Fixed it by replacing the old update DTO (which allowed every user
+field to be updated) with a strict allow-list that only permits
+fullName, profileImage, and phone to be changed through this
+endpoint. Role and password are now impossible to touch here -
+role changes will only be possible through the admin-only user
+management endpoints, and password changes should eventually go
+through their own dedicated flow.
+
+Retested after the fix with the same exact malicious request and
+confirmed role no longer changes.
