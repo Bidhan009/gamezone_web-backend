@@ -1,0 +1,30 @@
+[SEC-03] Fix: Broken access control on user endpoints
+
+Found that any logged-in user, even a completely normal account,
+could call GET /api/users and see every single user in the
+database, including other peoples hashed passwords, emails, and
+phone numbers. Also found the same problem on GET /api/users/id,
+where any user could view any other specific users full profile
+just by knowing or guessing their ID - this is an IDOR
+vulnerability.
+
+Confirmed this live using a normal test account with role user,
+successfully pulled another real users full profile data through
+the API with no admin access at all.
+
+Fixed by adding adminMiddleware to both the GET all users and
+GET single user by id routes, so only admin accounts can access
+them now. Also removed the old duplicate unprotected route
+definitions that were silently overriding the fix on first
+attempt, since Express matches the first registered route for
+a given path.
+
+As a second layer of defense, added a toJSON transform to the
+User model so the password hash field is now automatically
+stripped from every single API response involving user data,
+everywhere in the app, not just these two routes.
+
+Retested after the fix - the same normal user token now gets a
+403 Forbidden on both endpoints. Also confirmed an admin token
+can still access both endpoints normally, so the fix does not
+break legitimate admin functionality.

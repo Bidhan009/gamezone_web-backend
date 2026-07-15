@@ -16,6 +16,12 @@ const UserSchema: Schema = new Schema<UserType>(
     },
     {
         timestamps: true, // auto createdAt and updatedAt
+        toJSON: {
+            transform: function (doc, ret) {
+                delete (ret as any).password;
+                return ret;
+            }
+        }
     }
 );
 
