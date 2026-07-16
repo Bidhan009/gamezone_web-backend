@@ -1,27 +1,33 @@
-[SEC-05] Fix: Remove hardcoded JWT secret fallback
+[SEC-06] Fix: Insecure file upload validation using client-controlled MIME type
 
-Found that if the JWT_SECRET environment variable was ever missing
-(forgotten .env file, misconfigured deployment, container without
-the var set), the app would silently fall back to the literal
-string default as the signing secret, and still start up normally
-with no warning.
+Found that the profile picture and product image upload endpoints
+only checked the Content-Type header the client sent along with
+the file, to decide whether it was a real image or not. This header
+is fully controlled by whoever is sending the request and is not
+verified against the actual file content in any way, so its
+trivial to lie about it.
 
-Proved this was exploitable by temporarily removing JWT_SECRET from
-my own .env, then manually forging a JWT token outside the app
-using nothing but the known fallback value default and a real
-users ID copied from the database. Used that forged token against
-a protected endpoint and successfully impersonated that real user
-with zero password and zero legitimate login.
+Proved this by creating a plain text file containing a script tag,
+naming it fake-image.png, and uploading it while manually setting
+its Content-Type to image/png. The server accepted it without any
+issue and stored it in the public uploads folder, where it was
+then reachable by anyone through a direct URL with no login
+required at all, since that folder is served as static files.
 
-Fixed by making config/index.ts throw a fatal error and refuse to
-start the application entirely if JWT_SECRET is not explicitly set
-in the environment, instead of silently falling back to an insecure
-default. Also generated and set a proper long random secret using
-Node cryptos randomBytes instead of a short guessable string.
+Fixed by installing the file-type package and adding a second
+validation step that runs after the file is uploaded, which reads
+the files actual binary content and checks its real file signature
+against a list of genuinely allowed image types, completely
+ignoring whatever Content-Type the client claimed. If the real
+content does not match an allowed image type, the uploaded file is
+immediately deleted from disk and the request is rejected.
 
-Retested after the fix in two parts. First, confirmed the app now
-refuses to start at all when JWT_SECRET is missing, showing a clear
-fatal error message. Second, confirmed my previously forged token
-(signed with the old fallback default) is now rejected with an
-invalid signature error once the real secret is restored, since it
-no longer matches.
+Also fixed a separate bug in this same file where the uuid package
+was being imported incorrectly for the installed version, which
+would have caused a crash on every upload attempt.
+
+Retested after the fix using the exact same disguised file and
+Content-Type lie as before, and confirmed the server now rejects it
+with a clear error message and does not save the file. Also
+confirmed a real image file still uploads successfully, so the fix
+does not break legitimate functionality.

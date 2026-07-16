@@ -8,9 +8,8 @@ const router = Router();
 
 router.use(authorizationMiddleware);
 
-// Update this line:
-// Use 'profileImage' as the key name (or whatever you prefer)
-router.put("/", uploads.single('profileImage'), userController.updateUser);
+// using the spreads in uploads
+router.put("/", ...uploads.single('profileImage'), userController.updateUser);
 
 // router.get("/", userController.getAllUsers);
 // router.get("/:id", userController.getUserById);

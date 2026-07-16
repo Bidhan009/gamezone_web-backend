@@ -11,8 +11,9 @@ router.get("/", productController.getAllProducts);
 router.get("/:id", productController.getProductById);
 
 // Protected routes (admin/user based on requirements, assuming auth needed for mutation)
-router.post("/", authorizationMiddleware, uploads.single("productImage"), productController.createProduct);
-router.put("/:id", authorizationMiddleware, uploads.single("productImage"), productController.updateProduct);
+// adding ... spreads in the uploads
+router.post("/", authorizationMiddleware, ...uploads.single("productImage"), productController.createProduct);
+router.put("/:id", authorizationMiddleware, ...uploads.single("productImage"), productController.updateProduct);
 router.delete("/:id", authorizationMiddleware, productController.deleteProduct);
 
 export default router;

@@ -2,7 +2,7 @@ import multer from "multer";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import fs from "fs";
-import { fileTypeFromFile } from "file-type/source";
+import { fileTypeFromFile } from "file-type";
 
 // Ensure the uploads directory exists
 // __dirname is the directory of the current module
