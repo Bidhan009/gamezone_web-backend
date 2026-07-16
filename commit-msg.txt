@@ -1,30 +1,27 @@
-[SEC-03] Fix: Broken access control on user endpoints
+[SEC-05] Fix: Remove hardcoded JWT secret fallback
 
-Found that any logged-in user, even a completely normal account,
-could call GET /api/users and see every single user in the
-database, including other peoples hashed passwords, emails, and
-phone numbers. Also found the same problem on GET /api/users/id,
-where any user could view any other specific users full profile
-just by knowing or guessing their ID - this is an IDOR
-vulnerability.
+Found that if the JWT_SECRET environment variable was ever missing
+(forgotten .env file, misconfigured deployment, container without
+the var set), the app would silently fall back to the literal
+string default as the signing secret, and still start up normally
+with no warning.
 
-Confirmed this live using a normal test account with role user,
-successfully pulled another real users full profile data through
-the API with no admin access at all.
+Proved this was exploitable by temporarily removing JWT_SECRET from
+my own .env, then manually forging a JWT token outside the app
+using nothing but the known fallback value default and a real
+users ID copied from the database. Used that forged token against
+a protected endpoint and successfully impersonated that real user
+with zero password and zero legitimate login.
 
-Fixed by adding adminMiddleware to both the GET all users and
-GET single user by id routes, so only admin accounts can access
-them now. Also removed the old duplicate unprotected route
-definitions that were silently overriding the fix on first
-attempt, since Express matches the first registered route for
-a given path.
+Fixed by making config/index.ts throw a fatal error and refuse to
+start the application entirely if JWT_SECRET is not explicitly set
+in the environment, instead of silently falling back to an insecure
+default. Also generated and set a proper long random secret using
+Node cryptos randomBytes instead of a short guessable string.
 
-As a second layer of defense, added a toJSON transform to the
-User model so the password hash field is now automatically
-stripped from every single API response involving user data,
-everywhere in the app, not just these two routes.
-
-Retested after the fix - the same normal user token now gets a
-403 Forbidden on both endpoints. Also confirmed an admin token
-can still access both endpoints normally, so the fix does not
-break legitimate admin functionality.
+Retested after the fix in two parts. First, confirmed the app now
+refuses to start at all when JWT_SECRET is missing, showing a clear
+fatal error message. Second, confirmed my previously forged token
+(signed with the old fallback default) is now rejected with an
+invalid signature error once the real secret is restored, since it
+no longer matches.
