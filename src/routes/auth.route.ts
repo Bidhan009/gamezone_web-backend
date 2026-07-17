@@ -2,12 +2,13 @@ import { Router } from "express";
 import { AuthController } from "../controllers/auth.controller";
 import { authorizationMiddleware } from "../middleware/auth.middleware";
 import { uploads } from "../middleware/upload.middleware";
+import { loginLimiter, registerLimiter } from "../middleware/rate-limit.middleware";
 
 let authController = new AuthController();
 const router = Router();
 
-router.post("/register", authController.register)
-router.post("/login", authController.login)
+router.post("/register", registerLimiter, authController.register)
+router.post("/login", loginLimiter, authController.login)
 router.post("/logout", authorizationMiddleware, authController.logout);
 router.get("/whoami", authorizationMiddleware, authController.getProfile);
 

@@ -8,6 +8,7 @@ import productRoutes from './routes/product.route';
 import userRoutes from './routes/user.route';
 import cartRoutes from './routes/cart.route';
 import orderRoutes from './routes/order.route';
+import { generalLimiter } from "./middleware/rate-limit.middleware";
 
 const app: Application = express();
 
@@ -21,6 +22,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(generalLimiter);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));

@@ -1,28 +1,29 @@
-[SEC-07] Fix: No session revocation and excessively long JWT lifetime
+[SEC-08] Fix: No rate limiting on login and registration endpoints
 
-Found two related problems with session handling. First, there was
-no logout route wired up at all in the router, even though a logout
-function existed in the controller, so users had no way to end
-their session early through the app. Second, JWT tokens were valid
-for 30 days with no revocation mechanism of any kind, meaning a
-stolen token would remain fully usable for a full month regardless
-of what the legitimate user did.
+Found that the login endpoint had absolutely no protection against
+repeated failed attempts. Ran 10 rapid login requests with a wrong
+password back to back and every single one was processed instantly
+with no delay, no lockout, and no blocking of any kind, meaning an
+attacker could brute force passwords automatically at full speed
+with no resistance at all. Registration had the same lack of any
+throttling.
 
-Proved this by logging in, calling logout, and then reusing the
-exact same token again on a protected route, which succeeded
-completely, showing logout had no real effect even after the route
-was added.
+Fixed by installing express-rate-limit and creating three separate
+limiters. A strict limiter on login allowing only 5 attempts per IP
+every 15 minutes, since this is the most sensitive and most likely
+to be targeted endpoint. A slightly looser limiter on registration
+allowing 10 attempts per hour, since legitimate signups can
+sometimes come in small bursts from shared networks. And a general
+limiter applied globally across the entire app as a baseline, so
+every endpoint has at least some protection against abuse, not just
+authentication routes.
 
-Fixed by creating a simple in memory token blacklist. The logout
-endpoint now adds the users current token to this blacklist, and
-the auth middleware checks every incoming token against it before
-verifying the token normally, rejecting any token that has been
-explicitly logged out. Also reduced the JWT expiry from 30 days
-down to 1 hour, to shrink the exposure window if a token is ever
-stolen. Noted in code comments that a production deployment with
-multiple servers would need a shared store like Redis instead of
-in memory storage for this to work correctly across instances.
+Made the same mistake as SEC-03 initially, where I added the new
+rate limited routes but forgot to remove the old duplicate
+unprotected route definitions above them, so Express kept matching
+the old unprotected ones first. Fixed by removing the duplicates.
 
-Retested after the fix by logging in, calling logout, then
-attempting to reuse the same token again, and confirmed it is now
-correctly rejected with a token has been revoked message.
+Retested after the fix by running the same 10 rapid login attempts
+again, and confirmed the first 5 attempts return the normal
+unauthorized response, while attempts 6 through 10 are correctly
+blocked with a too many requests response instead.
