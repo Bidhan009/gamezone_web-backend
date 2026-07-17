@@ -3,6 +3,7 @@ import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 import z from "zod";
+import { blacklistToken } from "../utils/token-blacklist";
 
 // In Clean Architecture, consider injecting this via the constructor later
 const userService = new UserService();
@@ -61,6 +62,11 @@ export class AuthController {
 
     logout = async (req: Request, res: Response) => {
         try {
+            const authHeader = req.headers.authorization;
+            const token = authHeader?.split(" ")[1];
+            if (token) {
+                blacklistToken(token);
+            }
             res.status(200).json({
                 success: true,
                 message: "Logout successful"

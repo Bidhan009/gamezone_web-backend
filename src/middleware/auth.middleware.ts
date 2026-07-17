@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import { UserRepository } from "../repositories/user.repository";
 import { HttpError } from "../errors/http-error";
 import { IUser } from "../models/user.model";
+import { isTokenBlacklisted } from "../utils/token-blacklist";
 
 declare global{
     namespace Express{
@@ -27,6 +28,10 @@ export const authorizationMiddleware = async(req: Request, res: Response, next: 
         const token = authHeader.split(" ")[1]; // "Beared <string>" [1] -> <string>
         if(!token){
             throw new HttpError(401, "Unauthorized, token missing");
+        }
+        // Reject tokens that were explicitly logged out
+        if (isTokenBlacklisted(token)) {
+            throw new HttpError(401, "Unauthorized, token has been revoked");
         }
         const decodedtoken = jwt.verify(token, JWT_SECRET) as Record<string, any>; // verify with secret
         if(!decodedtoken || !decodedtoken.id){

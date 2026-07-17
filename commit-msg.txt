@@ -1,33 +1,28 @@
-[SEC-06] Fix: Insecure file upload validation using client-controlled MIME type
+[SEC-07] Fix: No session revocation and excessively long JWT lifetime
 
-Found that the profile picture and product image upload endpoints
-only checked the Content-Type header the client sent along with
-the file, to decide whether it was a real image or not. This header
-is fully controlled by whoever is sending the request and is not
-verified against the actual file content in any way, so its
-trivial to lie about it.
+Found two related problems with session handling. First, there was
+no logout route wired up at all in the router, even though a logout
+function existed in the controller, so users had no way to end
+their session early through the app. Second, JWT tokens were valid
+for 30 days with no revocation mechanism of any kind, meaning a
+stolen token would remain fully usable for a full month regardless
+of what the legitimate user did.
 
-Proved this by creating a plain text file containing a script tag,
-naming it fake-image.png, and uploading it while manually setting
-its Content-Type to image/png. The server accepted it without any
-issue and stored it in the public uploads folder, where it was
-then reachable by anyone through a direct URL with no login
-required at all, since that folder is served as static files.
+Proved this by logging in, calling logout, and then reusing the
+exact same token again on a protected route, which succeeded
+completely, showing logout had no real effect even after the route
+was added.
 
-Fixed by installing the file-type package and adding a second
-validation step that runs after the file is uploaded, which reads
-the files actual binary content and checks its real file signature
-against a list of genuinely allowed image types, completely
-ignoring whatever Content-Type the client claimed. If the real
-content does not match an allowed image type, the uploaded file is
-immediately deleted from disk and the request is rejected.
+Fixed by creating a simple in memory token blacklist. The logout
+endpoint now adds the users current token to this blacklist, and
+the auth middleware checks every incoming token against it before
+verifying the token normally, rejecting any token that has been
+explicitly logged out. Also reduced the JWT expiry from 30 days
+down to 1 hour, to shrink the exposure window if a token is ever
+stolen. Noted in code comments that a production deployment with
+multiple servers would need a shared store like Redis instead of
+in memory storage for this to work correctly across instances.
 
-Also fixed a separate bug in this same file where the uuid package
-was being imported incorrectly for the installed version, which
-would have caused a crash on every upload attempt.
-
-Retested after the fix using the exact same disguised file and
-Content-Type lie as before, and confirmed the server now rejects it
-with a clear error message and does not save the file. Also
-confirmed a real image file still uploads successfully, so the fix
-does not break legitimate functionality.
+Retested after the fix by logging in, calling logout, then
+attempting to reuse the same token again, and confirmed it is now
+correctly rejected with a token has been revoked message.
