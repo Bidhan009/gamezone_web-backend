@@ -11,6 +11,8 @@ router.post("/register", registerLimiter, authController.register)
 router.post("/login", loginLimiter, authController.login)
 router.post("/logout", authorizationMiddleware, authController.logout);
 router.get("/whoami", authorizationMiddleware, authController.getProfile);
+router.post("/mfa/setup", authorizationMiddleware, authController.setupMfa);
+router.post("/mfa/confirm", authorizationMiddleware, authController.confirmMfa);
 
 router.put(
     '/update-profile',
