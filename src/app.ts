@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth.route';
 import adminRoutes from './routes/admin/admin.route';
 import productRoutes from './routes/product.route';
@@ -11,6 +12,7 @@ import orderRoutes from './routes/order.route';
 import { generalLimiter } from "./middleware/rate-limit.middleware";
 
 const app: Application = express();
+app.use(helmet());
 
 const corsOptions = {
     origin: ["http://localhost:3000", "http://localhost:8080"],  // Flutter web default port

@@ -1,29 +1,30 @@
-[SEC-08] Fix: No rate limiting on login and registration endpoints
+[SEC-09] Fix: Missing security headers and critical duplicate app instance bug
 
-Found that the login endpoint had absolutely no protection against
-repeated failed attempts. Ran 10 rapid login requests with a wrong
-password back to back and every single one was processed instantly
-with no delay, no lockout, and no blocking of any kind, meaning an
-attacker could brute force passwords automatically at full speed
-with no resistance at all. Registration had the same lack of any
-throttling.
+Found that the server was sending no security related HTTP headers
+at all, and was leaking its framework identity through an
+X-Powered-By: Express header, giving potential attackers an easy
+head start on framework specific exploits.
 
-Fixed by installing express-rate-limit and creating three separate
-limiters. A strict limiter on login allowing only 5 attempts per IP
-every 15 minutes, since this is the most sensitive and most likely
-to be targeted endpoint. A slightly looser limiter on registration
-allowing 10 attempts per hour, since legitimate signups can
-sometimes come in small bursts from shared networks. And a general
-limiter applied globally across the entire app as a baseline, so
-every endpoint has at least some protection against abuse, not just
-authentication routes.
+While testing the fix, discovered a much bigger underlying problem.
+index.ts was building its own completely separate Express app from
+scratch, re-importing and re-registering all the same routes and
+cors settings independently, instead of using the actual app.ts
+file. This meant the running server was never using app.ts at all,
+so every change made there, including this helmet fix and the
+global rate limiter from SEC-08, was silently having zero effect
+the whole time, despite the code itself being completely correct.
 
-Made the same mistake as SEC-03 initially, where I added the new
-rate limited routes but forgot to remove the old duplicate
-unprotected route definitions above them, so Express kept matching
-the old unprotected ones first. Fixed by removing the duplicates.
+Fixed the header issue by installing helmet and applying it as the
+very first middleware in app.ts. Fixed the deeper issue by
+rewriting index.ts to simply import the real app from app.ts and
+only handle database connection and starting the server, removing
+the duplicate app building code entirely so there is now only one
+single source of truth for how the Express app is configured.
 
-Retested after the fix by running the same 10 rapid login attempts
-again, and confirmed the first 5 attempts return the normal
-unauthorized response, while attempts 6 through 10 are correctly
-blocked with a too many requests response instead.
+Retested after both fixes by checking response headers again, and
+confirmed X-Powered-By is gone and a full set of helmet security
+headers are now present, including Content-Security-Policy,
+X-Frame-Options, and Strict-Transport-Security. Also confirmed as a
+side effect that the global rate limiter from SEC-08 is now
+actually active too, visible through the RateLimit response
+headers, which it was not before this fix.
