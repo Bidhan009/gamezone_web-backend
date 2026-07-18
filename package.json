@@ -24,6 +24,7 @@
     "mongoose": "^9.1.1",
     "multer": "^2.0.2",
     "uuid": "^12.0.0",
+    "winston": "^3.19.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {
