@@ -5,6 +5,7 @@ import { AuthRequest } from "../middleware/auth.middleware";
 import z from "zod";
 import { blacklistToken } from "../utils/token-blacklist";
 import { logSecurityEvent } from "../utils/logger";
+import { HttpError } from "../errors/http-error";
 
 // In Clean Architecture, consider injecting this via the constructor later
 const userService = new UserService();
@@ -42,39 +43,38 @@ export class AuthController {
     };
 
     login = async (req: Request, res: Response) => {
-        try {
-            const parsedData = LoginUserDTO.safeParse(req.body);
-            if (!parsedData.success) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: z.prettifyError(parsedData.error) 
-                });
-            }
+            try {
+                const parsedData = LoginUserDTO.safeParse(req.body);
+                if (!parsedData.success) {
+                    return res.status(400).json({ success: false, message: z.prettifyError(parsedData.error) });
+                }
 
-            const { token, user } = await userService.loginUser(parsedData.data);
-            logSecurityEvent("LOGIN_SUCCESS", {
-                userId: user._id,
-                email: user.email,
-                ip: req.ip
-            });
-            return res.status(200).json({ 
-                success: true, 
-                message: "Login successful", 
-                data: user, 
-                token 
-            });
-        } catch (error: any) {
-            logSecurityEvent("LOGIN_FAILED", {
-                attemptedEmail: req.body?.email,
-                ip: req.ip,
-                reason: error.message
-            });
-            return res.status(error.statusCode ?? 500).json({ 
-                success: false, 
-                message: error.message || "Internal Server Error" 
-            });
-        }
-    };
+                const result = await userService.loginUser(parsedData.data);
+
+                if (result.mfaRequired) {
+                    logSecurityEvent("LOGIN_MFA_REQUIRED", { email: parsedData.data.email, ip: req.ip });
+                    return res.status(200).json({
+                        success: true,
+                        mfaRequired: true,
+                        mfaPendingToken: result.mfaPendingToken
+                    });
+                }
+
+                if (!result.user) {
+                    throw new HttpError(500, "Unexpected error during login");
+                }
+                logSecurityEvent("LOGIN_SUCCESS", { userId: result.user._id, email: result.user.email, ip: req.ip });
+                return res.status(200).json({
+                    success: true,
+                    message: "Login successful",
+                    data: result.user,
+                    token: result.token
+                });
+            } catch (error: any) {
+                logSecurityEvent("LOGIN_FAILED", { attemptedEmail: req.body?.email, ip: req.ip, reason: error.message });
+                return res.status(error.statusCode ?? 500).json({ success: false, message: error.message || "Internal Server Error" });
+            }
+        };
 
     logout = async (req: Request, res: Response) => {
         try {
@@ -190,6 +190,20 @@ confirmMfa = async (req: AuthRequest, res: Response) => {
             success: false,
             message: error.message || "Internal Server Error"
         });
+    }
+};
+verifyMfa = async (req: Request, res: Response) => {
+    try {
+        const { mfaPendingToken, mfaCode } = req.body;
+        if (!mfaPendingToken || !mfaCode) {
+            return res.status(400).json({ success: false, message: "MFA token and code required" });
+        }
+        const { token, user } = await userService.verifyMfaLogin(mfaPendingToken, mfaCode);
+        logSecurityEvent("LOGIN_MFA_SUCCESS", { userId: user._id, email: user.email, ip: req.ip });
+        return res.status(200).json({ success: true, message: "Login successful", data: user, token });
+    } catch (error: any) {
+        logSecurityEvent("LOGIN_MFA_FAILED", { ip: req.ip, reason: error.message });
+        return res.status(error.statusCode ?? 500).json({ success: false, message: error.message || "Internal Server Error" });
     }
 };
 }

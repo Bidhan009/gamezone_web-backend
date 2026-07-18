@@ -42,6 +42,16 @@ export class UserService {
         if(!validPassword){
             throw new HttpError(401, "Invalid credentials");
         }
+        // If MFA is enabled, don't issue the real token yet —
+        // require the second factor first
+        if (user.mfaEnabled) {
+            const mfaPendingToken = jwt.sign(
+                { id: user._id, mfaPending: true },
+                JWT_SECRET,
+                { expiresIn: '5m' } // short-lived, only valid to complete MFA
+            );
+            return { mfaRequired: true, mfaPendingToken, user: null, token: null };
+        }
         // generate jwt
         const payload = { // user identifier
             id: user._id,
@@ -52,6 +62,43 @@ export class UserService {
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' }); 
         return { token, user }
     }
+    async verifyMfaLogin(mfaPendingToken: string, mfaCode: string) {
+    let decoded: any;
+    try {
+        decoded = jwt.verify(mfaPendingToken, JWT_SECRET);
+    } catch {
+        throw new HttpError(401, "Invalid or expired MFA session");
+    }
+
+    if (!decoded.mfaPending) {
+        throw new HttpError(401, "Invalid MFA session");
+    }
+
+    const user = await userRepository.getUserByIdWithSecret(decoded.id);
+    if (!user || !user.mfaSecret) {
+        throw new HttpError(400, "MFA not set up for this user");
+    }
+
+    const isValid = speakeasy.totp.verify({
+        secret: user.mfaSecret,
+        encoding: "base32",
+        token: mfaCode,
+        window: 1,
+    });
+
+    if (!isValid) {
+        throw new HttpError(401, "Invalid MFA code");
+    }
+
+    const payload = {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role
+    };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+    return { token, user };
+}
 
     async getUserById(userId: string) {
         const user = await userRepository.getUserById(userId);

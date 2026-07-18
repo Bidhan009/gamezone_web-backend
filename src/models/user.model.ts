@@ -21,6 +21,7 @@ const UserSchema: Schema = new Schema<UserType>(
         toJSON: {
             transform: function (doc, ret) {
                 delete (ret as any).password;
+                delete (ret as any).mfaSecret;
                 return ret;
             }
         }

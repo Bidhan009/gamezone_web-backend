@@ -13,6 +13,7 @@ router.post("/logout", authorizationMiddleware, authController.logout);
 router.get("/whoami", authorizationMiddleware, authController.getProfile);
 router.post("/mfa/setup", authorizationMiddleware, authController.setupMfa);
 router.post("/mfa/confirm", authorizationMiddleware, authController.confirmMfa);
+router.post("/mfa/verify-login", authController.verifyMfa);
 
 router.put(
     '/update-profile',
