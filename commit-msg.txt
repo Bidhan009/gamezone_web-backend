@@ -1,33 +1,26 @@
-[SEC-10] Fix: No audit or activity logging anywhere in the application
+[SEC-11] Fix: Broken function-level authorization on product management routes
 
-Found that the app had absolutely no logging of any security
-relevant events. No record of who logged in or when, no record of
-failed login attempts, no record of admin actions being performed.
-Confirmed this by checking the project folder directly and finding
-no logs folder or log files of any kind existed anywhere.
+Found that the public product routes only checked whether a user
+was logged in, not whether they were an admin, even though the
+exact same product create, update, and delete functionality was
+correctly restricted to admins only through a separate admin
+prefixed route using the same controller. This meant there were two
+paths to the same functionality, one properly secured and one
+completely open to any registered user.
 
-This matters because if any real attack happened, including any of
-the vulnerabilities found and fixed earlier in this project, there
-would be zero trace of it afterward, making investigation or
-incident response completely impossible.
+Proved this by logging in as a normal, non-admin test account and
+successfully deleting a real product from the live database using
+only the unprotected route, with no admin access at all. Confirmed
+the product was actually gone afterward, not just a fake success
+response.
 
-Fixed by installing winston and creating a centralized logger
-utility that writes structured, timestamped JSON logs to both the
-console and a logs/security.log file. Wired this into the auth
-controller to log successful registrations, successful logins, and
-failed login attempts with the reason for failure. Also wired it
-into the adminMiddleware so every single admin protected action is
-logged with the acting users id, email, the route accessed, and the
-HTTP method used.
+Fixed by adding adminMiddleware alongside the existing
+authorizationMiddleware on the create, update, and delete product
+routes, while intentionally leaving the read only routes, get all
+products and get product by id, public and unauthenticated, since
+browsing the store should not require being logged in.
 
-Was careful to only ever log identifying and contextual information
-such as user id, email, ip address, and route, and never log
-passwords, tokens, or any other sensitive field, to avoid creating
-a new sensitive data exposure risk through the logs themselves.
-Added logs folder to gitignore since log files should not be
-committed to the repository.
-
-Retested after the fix by triggering a successful login, a failed
-login, and an admin protected request, then checking the log file
-and confirming all three events were correctly captured with
-appropriate detail and no sensitive data present.
+Retested after the fix using the exact same non-admin account and a
+different existing product, and confirmed the request is now
+correctly blocked with a forbidden not admin response instead of
+succeeding.
