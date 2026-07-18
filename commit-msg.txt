@@ -1,26 +1,37 @@
-[SEC-11] Fix: Broken function-level authorization on product management routes
+[SEC-13] Fix: NoSQL regex injection in user email lookup
 
-Found that the public product routes only checked whether a user
-was logged in, not whether they were an admin, even though the
-exact same product create, update, and delete functionality was
-correctly restricted to admins only through a separate admin
-prefixed route using the same controller. This meant there were two
-paths to the same functionality, one properly secured and one
-completely open to any registered user.
+Found this one through source code review rather than live testing
+first. The getUserByEmail function, used during both login and
+registration duplicate checks, built a regex search pattern
+directly out of whatever email string was passed in, with no
+escaping of special regex characters at all.
 
-Proved this by logging in as a normal, non-admin test account and
-successfully deleting a real product from the live database using
-only the unprotected route, with no admin access at all. Confirmed
-the product was actually gone afterward, not just a fake success
-response.
+The main risk is that dots are extremely common in real email
+addresses, but a dot has a special meaning in regex, it means match
+any single character, not literally a dot. This meant the email
+lookup was never doing a truly exact match like it should for
+something like a login check.
 
-Fixed by adding adminMiddleware alongside the existing
-authorizationMiddleware on the create, update, and delete product
-routes, while intentionally leaving the read only routes, get all
-products and get product by id, public and unauthenticated, since
-browsing the store should not require being logged in.
+Initially suspected this could also cause a crash via malformed
+regex syntax, tested that first and found it was actually already
+blocked by the existing Zod email format validation, so that
+specific angle was not exploitable. Refined testing toward the
+wildcard matching issue instead, which validly formatted emails can
+still trigger since dots are completely normal in real addresses.
 
-Retested after the fix using the exact same non-admin account and a
-different existing product, and confirmed the request is now
-correctly blocked with a forbidden not admin response instead of
-succeeding.
+Proved this live by logging in with a deliberately wrong email,
+replacing the real dot in my test accounts email with a literal dot
+in a different position, and confirming the server still found and
+matched the real account, shown by receiving an invalid credentials
+response instead of user not found, despite submitting a string
+that was not the real stored email.
+
+Fixed by replacing the regex based lookup entirely with a plain
+exact match query using Mongoose's collation option for proper
+case insensitive matching, which removes the need for building any
+regex from user input at all, eliminating the injection vector
+completely rather than just sanitizing around it.
+
+Retested after the fix using the exact same wildcard payload and
+confirmed it now correctly returns user not found. Also confirmed
+normal legitimate login still works correctly afterward.

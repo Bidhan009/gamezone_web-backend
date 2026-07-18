@@ -18,9 +18,8 @@ export class UserRepository implements IUserRepository {
         return await user.save();
     }
     async getUserByEmail(email: string): Promise<IUser | null> {
-    const user = await UserModel.findOne({
-        email: { $regex: new RegExp(`^${email}$`, "i") }
-    });
+    const user = await UserModel.findOne({ email: email })
+        .collation({ locale: "en", strength: 2 });
     return user;
     }
 
