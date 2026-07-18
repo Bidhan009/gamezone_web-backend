@@ -1,30 +1,33 @@
-[SEC-09] Fix: Missing security headers and critical duplicate app instance bug
+[SEC-10] Fix: No audit or activity logging anywhere in the application
 
-Found that the server was sending no security related HTTP headers
-at all, and was leaking its framework identity through an
-X-Powered-By: Express header, giving potential attackers an easy
-head start on framework specific exploits.
+Found that the app had absolutely no logging of any security
+relevant events. No record of who logged in or when, no record of
+failed login attempts, no record of admin actions being performed.
+Confirmed this by checking the project folder directly and finding
+no logs folder or log files of any kind existed anywhere.
 
-While testing the fix, discovered a much bigger underlying problem.
-index.ts was building its own completely separate Express app from
-scratch, re-importing and re-registering all the same routes and
-cors settings independently, instead of using the actual app.ts
-file. This meant the running server was never using app.ts at all,
-so every change made there, including this helmet fix and the
-global rate limiter from SEC-08, was silently having zero effect
-the whole time, despite the code itself being completely correct.
+This matters because if any real attack happened, including any of
+the vulnerabilities found and fixed earlier in this project, there
+would be zero trace of it afterward, making investigation or
+incident response completely impossible.
 
-Fixed the header issue by installing helmet and applying it as the
-very first middleware in app.ts. Fixed the deeper issue by
-rewriting index.ts to simply import the real app from app.ts and
-only handle database connection and starting the server, removing
-the duplicate app building code entirely so there is now only one
-single source of truth for how the Express app is configured.
+Fixed by installing winston and creating a centralized logger
+utility that writes structured, timestamped JSON logs to both the
+console and a logs/security.log file. Wired this into the auth
+controller to log successful registrations, successful logins, and
+failed login attempts with the reason for failure. Also wired it
+into the adminMiddleware so every single admin protected action is
+logged with the acting users id, email, the route accessed, and the
+HTTP method used.
 
-Retested after both fixes by checking response headers again, and
-confirmed X-Powered-By is gone and a full set of helmet security
-headers are now present, including Content-Security-Policy,
-X-Frame-Options, and Strict-Transport-Security. Also confirmed as a
-side effect that the global rate limiter from SEC-08 is now
-actually active too, visible through the RateLimit response
-headers, which it was not before this fix.
+Was careful to only ever log identifying and contextual information
+such as user id, email, ip address, and route, and never log
+passwords, tokens, or any other sensitive field, to avoid creating
+a new sensitive data exposure risk through the logs themselves.
+Added logs folder to gitignore since log files should not be
+committed to the repository.
+
+Retested after the fix by triggering a successful login, a failed
+login, and an admin protected request, then checking the log file
+and confirming all three events were correctly captured with
+appropriate detail and no sensitive data present.

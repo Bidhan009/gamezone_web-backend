@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 import z from "zod";
 import { blacklistToken } from "../utils/token-blacklist";
+import { logSecurityEvent } from "../utils/logger";
 
 // In Clean Architecture, consider injecting this via the constructor later
 const userService = new UserService();
@@ -22,6 +23,11 @@ export class AuthController {
             }
 
             const newUser = await userService.createUser(parsedData.data);
+            logSecurityEvent("USER_REGISTERED", {
+                userId: newUser._id,
+                email: newUser.email,
+                ip: req.ip
+            });
             return res.status(201).json({ 
                 success: true, 
                 message: "User Created", 
@@ -46,6 +52,11 @@ export class AuthController {
             }
 
             const { token, user } = await userService.loginUser(parsedData.data);
+            logSecurityEvent("LOGIN_SUCCESS", {
+                userId: user._id,
+                email: user.email,
+                ip: req.ip
+            });
             return res.status(200).json({ 
                 success: true, 
                 message: "Login successful", 
@@ -53,6 +64,11 @@ export class AuthController {
                 token 
             });
         } catch (error: any) {
+            logSecurityEvent("LOGIN_FAILED", {
+                attemptedEmail: req.body?.email,
+                ip: req.ip,
+                reason: error.message
+            });
             return res.status(error.statusCode ?? 500).json({ 
                 success: false, 
                 message: error.message || "Internal Server Error" 

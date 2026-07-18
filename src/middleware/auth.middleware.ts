@@ -5,6 +5,7 @@ import { UserRepository } from "../repositories/user.repository";
 import { HttpError } from "../errors/http-error";
 import { IUser } from "../models/user.model";
 import { isTokenBlacklisted } from "../utils/token-blacklist";
+import { logSecurityEvent } from "../utils/logger";
 
 declare global{
     namespace Express{
@@ -60,6 +61,12 @@ export const adminMiddleware = async (
         if (req.user.role !== 'admin') {
             throw new HttpError(403, 'Forbidden not admin');
         }
+        logSecurityEvent("ADMIN_ACTION", {
+            userId: req.user._id,
+            email: req.user.email,
+            route: req.originalUrl,
+            method: req.method
+        });
         return next();
     } catch (err: Error | any) {
         return res.status(err.statusCode || 500).json(
