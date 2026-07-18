@@ -12,7 +12,9 @@ const UserSchema: Schema = new Schema<UserType>(
             default: 'user',
         },
         profileImage: { type: String, default: null },
-        phone: {type:string, default:null}
+        phone: {type:string, default:null},
+        mfaSecret: { type: String, default: null, select: false },  // NEW — never returned by default
+        mfaEnabled: { type: Boolean, default: false },              // NEW
     },
     {
         timestamps: true, // auto createdAt and updatedAt

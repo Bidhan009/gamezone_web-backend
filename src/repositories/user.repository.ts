@@ -54,4 +54,8 @@ export class UserRepository implements IUserRepository {
         const updateUser = await UserModel.findByIdAndUpdate(id, data, {new:true});
         return updateUser;
     }
+    async getUserByIdWithSecret(id: string): Promise<IUser | null> {
+    const user = await UserModel.findById(id).select('+mfaSecret');
+    return user;
+}
 }

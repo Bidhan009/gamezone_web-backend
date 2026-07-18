@@ -4,6 +4,8 @@ import  bcryptjs from "bcryptjs"
 import { HttpError } from "../errors/http-error";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config";
+import speakeasy from "speakeasy";
+import QRCode from "qrcode";
 
 let userRepository = new UserRepository();
 
@@ -105,5 +107,46 @@ async deleteUser(userId: string) {
         throw new HttpError(404, "User not found");
     }
     return { message: "User deleted successfully" };
+}
+async generateMfaSecret(userId: string) {
+    const user = await userRepository.getUserById(userId);
+    if (!user) {
+        throw new HttpError(404, "User not found");
+    }
+
+    const secret = speakeasy.generateSecret({
+        name: `GameZone (${user.email})`,
+        length: 20,
+    });
+
+    // Store the secret temporarily — not yet "enabled" until user confirms
+    await userRepository.updateUser(userId, {
+        mfaSecret: secret.base32,
+    } as any);
+
+    const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url!);
+
+    return { qrCodeDataUrl, manualEntryKey: secret.base32 };
+}
+
+async verifyAndEnableMfa(userId: string, token: string) {
+    const user = await userRepository.getUserByIdWithSecret(userId);
+    if (!user || !user.mfaSecret) {
+        throw new HttpError(400, "MFA setup not initiated");
+    }
+
+    const isValid = speakeasy.totp.verify({
+        secret: user.mfaSecret,
+        encoding: "base32",
+        token: token,
+        window: 1, // allows 30s clock drift tolerance
+    });
+
+    if (!isValid) {
+        throw new HttpError(400, "Invalid MFA code");
+    }
+
+    await userRepository.updateUser(userId, { mfaEnabled: true } as any);
+    return { message: "MFA enabled successfully" };
 }
 }
