@@ -8,15 +8,13 @@ import { verifyCaptcha } from "../middleware/captcha.middleware";
 let authController = new AuthController();
 const router = Router();
 
-router.post("/register", registerLimiter, authController.register)
-router.post("/login", loginLimiter, authController.login)
+router.post("/register", registerLimiter, verifyCaptcha, authController.register) // implementing captcha
+router.post("/login", loginLimiter, verifyCaptcha, authController.login) // implementing captcha
 router.post("/logout", authorizationMiddleware, authController.logout);
 router.get("/whoami", authorizationMiddleware, authController.getProfile);
 router.post("/mfa/setup", authorizationMiddleware, authController.setupMfa);
 router.post("/mfa/confirm", authorizationMiddleware, authController.confirmMfa);
 router.post("/mfa/verify-login", authController.verifyMfa);
-router.post("/register", registerLimiter, verifyCaptcha, authController.register)
-router.post("/login", loginLimiter, verifyCaptcha, authController.login)
 
 router.put(
     '/update-profile',
