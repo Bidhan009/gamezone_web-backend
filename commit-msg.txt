@@ -1,41 +1,15 @@
-Add AES-256-GCM encryption for phone field at rest
+Add password complexity requirements and prepare for reuse prevention
 
-Implemented encryption of the phone number field using Nodes built
-in crypto module with AES-256-GCM, satisfying the coursework
-requirement for encryption of sensitive data where required. Phone
-numbers are personal identifiable information and are now stored as
-ciphertext in MongoDB rather than plain text, protecting them in the
-event the database itself is ever compromised or leaked.
+Strengthened the password validation schema to require a minimum
+of 8 characters, at least one uppercase letter, one lowercase
+letter, one number, and one special character, replacing the
+previous minimum of just 6 characters with no complexity rules at
+all. This satisfies the coursework requirement for a robust
+password policy.
 
-Created a dedicated encryption utility handling encrypt and decrypt
-operations, using a random initialization vector per encryption
-operation and storing the authentication tag alongside the
-ciphertext for integrity verification, with the actual encryption
-key loaded from an environment variable and never hardcoded or
-committed to the repository.
-
-Wired encryption into user creation and profile updates so phone is
-always encrypted before being saved, and wired decryption into every
-path that returns user data to the client, so the API always shows
-the readable phone number while the database only ever stores
-ciphertext.
-
-[SEC-15] Fix: Password and MFA secret leaking via toObject bypass
-
-While testing the phone decryption logic, discovered that calling
-toObject on a Mongoose document to prepare it for phone decryption
-was silently bypassing the toJSON transform added back in SEC-03
-and the MFA secret fix, since that transform only applies
-automatically to actual Mongoose documents being serialized
-directly, not to plain JavaScript objects. This meant the password
-hash and MFA secret were both leaking again in the update profile
-response, despite both existing protections still being technically
-in place elsewhere in the code.
-
-Fixed by manually deleting both fields inside the same helper
-function that handles phone decryption, since that function was now
-the point where documents get converted to plain objects.
-
-Retested after the fix and confirmed both password and mfaSecret
-are correctly absent from the response, while phone still displays
-correctly decrypted.
+Added a passwordHistory field to the user schema and type
+definitions, storing an array of previous password hashes, marked
+select false so it is hidden by default from normal queries. This
+lays the groundwork for password reuse prevention on password
+change, preventing users from cycling back to a recently used
+password.

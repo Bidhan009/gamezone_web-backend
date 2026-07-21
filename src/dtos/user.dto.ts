@@ -1,22 +1,24 @@
 import z from "zod";
 import { UserSchema } from "../types/user.type";
 
-// re-use UserSchema from types
+const passwordSchema = z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character");
+
 export const CreateUserDTO = UserSchema.pick({
     fullName: true,
     email: true,
-    password: true,
     profileImage: true
-    // role intentionally excluded — kaile ni client-controlled hunu hunna at registration
 }).extend({
-    confirmPassword: z.string().min(6),
+    password: passwordSchema,
+    confirmPassword: z.string().min(8),
     phone: z.string().optional()
 }).refine(
     (data) => data.password === data.confirmPassword,
-    {
-        message: "Passwords do not match",
-        path: ["confirmPassword"]
-    }
+    { message: "Passwords do not match", path: ["confirmPassword"] }
 );
 
 export type CreateUserDTO = z.infer<typeof CreateUserDTO>;

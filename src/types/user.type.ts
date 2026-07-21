@@ -9,6 +9,7 @@ export const UserSchema = z.object({
     phone: z.string().nullable().default(null),
     mfaSecret: z.string().nullable().default(null),
     mfaEnabled: z.boolean().default(false),
+    passwordHistory: z.array(z.string()).default([]),
 });
 
 export type UserType = z.infer<typeof UserSchema>;
