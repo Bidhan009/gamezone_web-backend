@@ -1,41 +1,22 @@
-Add TOTP-based Multi-Factor Authentication (MFA/2FA)
+Add CAPTCHA verification to registration and login endpoints
 
-Implemented full time-based one-time password MFA using speakeasy
-and qrcode, satisfying the coursework requirement for multi-factor
-authentication support.
+Implemented Google reCAPTCHA v2 verification on the register and
+login endpoints, satisfying the coursework requirement for
+brute-force and bot protection alongside the existing rate limiting
+from SEC-08.
 
-Added mfaSecret and mfaEnabled fields to the user model, with
-mfaSecret marked select false so it is never returned by normal
-queries unless explicitly requested.
+Added a verifyCaptcha middleware that checks a captchaToken field
+submitted with the request against Googles siteverify API using a
+server side secret key, rejecting the request before it reaches the
+controller if verification fails or the token is missing entirely.
 
-Built the setup flow: a logged in user can request MFA setup, which
-generates a unique secret and returns both a scannable QR code and
-a manual entry key. The user scans this with an authenticator app
-like Google Authenticator, then confirms setup by submitting the
-current 6 digit code, which is verified before MFA is actually
-marked as enabled on the account, preventing incomplete or broken
-setups from silently locking anyone out.
+Made the same duplicate route mistake as SEC-03 and SEC-08
+initially, where the new captcha protected routes were added below
+the old unprotected ones instead of replacing them, so Express kept
+matching the old ones first. Fixed by removing the duplicates, and
+noting this as a recurring pattern to watch for going forward.
 
-Built the login enforcement flow: if an account has MFA enabled,
-submitting the correct password no longer immediately returns a
-full access token. Instead it returns a short lived, 5 minute,
-special purpose pending token and a flag indicating MFA is
-required. The real access token is only issued after a second
-request that submits this pending token along with a valid current
-6 digit code from the authenticator app, which is verified using
-speakeasy against the stored secret.
-
-While testing this flow end to end, discovered the mfaSecret field
-was leaking directly in the login response body during the MFA
-verification step, despite being marked select false at the schema
-level, because the internal lookup method used during verification
-explicitly included it and the existing toJSON transform only
-stripped the password field, not this one. Fixed by extending the
-toJSON transform to also strip mfaSecret from every response.
-
-Tested the complete flow: enabled MFA on a test account, confirmed
-normal login now returns an MFA required response instead of a
-token, confirmed submitting the correct 6 digit code completes
-login and returns a real token, confirmed submitting an incorrect
-code is rejected, and confirmed the mfaSecret field no longer
-appears anywhere in any response after the fix.
+Tested by attempting registration with no captchaToken at all and
+confirming it is correctly rejected, then completing the full flow
+through the actual frontend with a real captcha checkbox completed
+and confirming registration and login both succeed normally.
