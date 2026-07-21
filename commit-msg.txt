@@ -1,22 +1,41 @@
-Add CAPTCHA verification to registration and login endpoints
+Add AES-256-GCM encryption for phone field at rest
 
-Implemented Google reCAPTCHA v2 verification on the register and
-login endpoints, satisfying the coursework requirement for
-brute-force and bot protection alongside the existing rate limiting
-from SEC-08.
+Implemented encryption of the phone number field using Nodes built
+in crypto module with AES-256-GCM, satisfying the coursework
+requirement for encryption of sensitive data where required. Phone
+numbers are personal identifiable information and are now stored as
+ciphertext in MongoDB rather than plain text, protecting them in the
+event the database itself is ever compromised or leaked.
 
-Added a verifyCaptcha middleware that checks a captchaToken field
-submitted with the request against Googles siteverify API using a
-server side secret key, rejecting the request before it reaches the
-controller if verification fails or the token is missing entirely.
+Created a dedicated encryption utility handling encrypt and decrypt
+operations, using a random initialization vector per encryption
+operation and storing the authentication tag alongside the
+ciphertext for integrity verification, with the actual encryption
+key loaded from an environment variable and never hardcoded or
+committed to the repository.
 
-Made the same duplicate route mistake as SEC-03 and SEC-08
-initially, where the new captcha protected routes were added below
-the old unprotected ones instead of replacing them, so Express kept
-matching the old ones first. Fixed by removing the duplicates, and
-noting this as a recurring pattern to watch for going forward.
+Wired encryption into user creation and profile updates so phone is
+always encrypted before being saved, and wired decryption into every
+path that returns user data to the client, so the API always shows
+the readable phone number while the database only ever stores
+ciphertext.
 
-Tested by attempting registration with no captchaToken at all and
-confirming it is correctly rejected, then completing the full flow
-through the actual frontend with a real captcha checkbox completed
-and confirming registration and login both succeed normally.
+[SEC-15] Fix: Password and MFA secret leaking via toObject bypass
+
+While testing the phone decryption logic, discovered that calling
+toObject on a Mongoose document to prepare it for phone decryption
+was silently bypassing the toJSON transform added back in SEC-03
+and the MFA secret fix, since that transform only applies
+automatically to actual Mongoose documents being serialized
+directly, not to plain JavaScript objects. This meant the password
+hash and MFA secret were both leaking again in the update profile
+response, despite both existing protections still being technically
+in place elsewhere in the code.
+
+Fixed by manually deleting both fields inside the same helper
+function that handles phone decryption, since that function was now
+the point where documents get converted to plain objects.
+
+Retested after the fix and confirmed both password and mfaSecret
+are correctly absent from the response, while phone still displays
+correctly decrypted.

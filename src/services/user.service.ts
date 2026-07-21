@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
+import { encrypt, decrypt } from "../utils/encryption";
 
 let userRepository = new UserRepository();
 
@@ -20,13 +21,14 @@ export class UserService {
     const hashedPassword = await bcryptjs.hash(data.password, 10);
     data.password = hashedPassword;
 
-    // Force role to 'user' for all public registrations — role can only be
-    // changed via the admin-protected user management endpoints
-    const newUser = await userRepository.createUser({
-        ...data,
-        role: "user"
-    });
-    return newUser;
+    // Encrypt phone before storing, if provided
+    const userToCreate: any = { ...data, role: "user" };
+    if (userToCreate.phone) {
+        userToCreate.phone = encrypt(userToCreate.phone);
+    }
+
+    const newUser = await userRepository.createUser(userToCreate);
+    return decryptUserPhone(newUser.toObject ? newUser.toObject() : newUser);
 }
     async loginUser(data: LoginUserDTO){
 
@@ -105,7 +107,7 @@ export class UserService {
         if (!user) {
             throw new HttpError(404, "User not found");
         }
-        return user;
+        return decryptUserPhone(user.toObject ? user.toObject() : user);
     }
 
     // async updateUserProfile(fullName: string, email:string, imageUrl: string) {
@@ -129,23 +131,21 @@ export class UserService {
         return updatedUser;
     }
 
-    async updateUser(
-    userId: string,
-    // updateData: {
-    //     fullName?: string;
-    //     email?: string;
-    //     profileImage?: string;
-    // }
-    updateData: UpdateUserDTO
-) {
-    const updatedUser = await userRepository.updateUser(userId, updateData);
+    async updateUser(userId: string, updateData: UpdateUserDTO) {
+    const dataToUpdate: any = { ...updateData };
+    if (dataToUpdate.phone) {
+        dataToUpdate.phone = encrypt(dataToUpdate.phone);
+    }
+
+    const updatedUser = await userRepository.updateUser(userId, dataToUpdate);
     if (!updatedUser) {
         throw new HttpError(404, "User not found");
     }
-    return updatedUser;
-} 
+    return decryptUserPhone(updatedUser.toObject ? updatedUser.toObject() : updatedUser);
+}
     async getAllUsers() {
-    return await userRepository.getAllUsers();
+    const users = await userRepository.getAllUsers();
+    return users.map((u: any) => decryptUserPhone(u.toObject ? u.toObject() : u));
 }
 
 async deleteUser(userId: string) {
@@ -196,4 +196,19 @@ async verifyAndEnableMfa(userId: string, token: string) {
     await userRepository.updateUser(userId, { mfaEnabled: true } as any);
     return { message: "MFA enabled successfully" };
 }
+}
+
+function decryptUserPhone(user: any) {
+    if (user?.phone) {
+        try {
+            user.phone = decrypt(user.phone);
+        } catch {
+            user.phone = null;
+        }
+    }
+    // Since .toObject() bypasses Mongoose's toJSON transform, we must
+    // strip these sensitive fields manually here as well.
+    delete user.password;
+    delete user.mfaSecret;
+    return user;
 }
