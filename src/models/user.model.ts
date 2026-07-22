@@ -15,7 +15,9 @@ const UserSchema: Schema = new Schema<UserType>(
         phone: {type:string, default:null},
         mfaSecret: { type: String, default: null, select: false },  // NEW — never returned by default
         mfaEnabled: { type: Boolean, default: false },   
-        passwordHistory: { type: [String], default: [], select: false },           // NEW
+        passwordHistory: { type: [String], default: [], select: false },
+        failedLoginAttempts: { type: Number, default: 0 },   // ADD
+        lockedUntil: { type: Date, default: null },
     },
     {
         timestamps: true, // auto createdAt and updatedAt

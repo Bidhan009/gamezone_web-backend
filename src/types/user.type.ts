@@ -10,6 +10,8 @@ export const UserSchema = z.object({
     mfaSecret: z.string().nullable().default(null),
     mfaEnabled: z.boolean().default(false),
     passwordHistory: z.array(z.string()).default([]),
+    failedLoginAttempts: z.number().default(0),      
+    lockedUntil: z.date().nullable().default(null),
 });
 
 export type UserType = z.infer<typeof UserSchema>;
