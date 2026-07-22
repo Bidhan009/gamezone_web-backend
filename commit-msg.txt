@@ -1,22 +1,28 @@
-Add account lockout after repeated failed login attempts
+[SEC-16] Add input sanitization for product fields (XSS defense-in-depth)
 
-Implemented per-account lockout as a second, independent layer of
-brute force protection alongside the existing IP based rate
-limiting from SEC-08. Rate limiting alone only protects against
-fast automated attacks from a single IP, but does not stop an
-attacker who spaces out attempts or distributes them across
-multiple IP addresses to stay under the rate limit threshold.
+Tested the product name and description fields for stored cross
+site scripting by submitting a script tag payload through the
+product creation endpoint. The payload was accepted and stored
+unsanitized in the database. When viewed on the actual frontend,
+no script execution occurred, confirming React's default behavior
+of escaping text content rather than interpreting it as HTML, so
+this was not currently exploitable as a live vulnerability.
 
-Added failedLoginAttempts and lockedUntil fields to the user
-schema. Each failed login attempt increments the counter for that
-specific account. After 5 failed attempts, the account is locked
-for 15 minutes regardless of which IP the requests come from,
-returning a clear locked message with the remaining time. A
-successful login resets both the failed attempt counter and any
-active lock.
+However, storing unsanitized HTML and script content in the
+database is not defense in depth best practice. If any future
+frontend change introduced dangerouslySetInnerHTML or a different
+rendering path for these fields, the already stored payloads would
+become immediately exploitable without needing to be resubmitted.
 
-This works together with the existing rate limiter as layered
-defense in depth, rate limiting blocks fast bursts immediately,
-while account lockout protects against slower or distributed brute
-force attempts that might otherwise stay under the rate limiting
-threshold.
+Added the sanitize-html library and applied it to the name,
+category, and description fields on both product creation and
+update, stripping all HTML tags and attributes before the data is
+ever stored, regardless of what the frontend currently does with
+it.
+
+Tested with a fully malicious payload, which was correctly
+stripped down to an empty string and rejected by the required
+field validation as expected. Also tested with a realistic mixed
+payload containing both legitimate text and a script tag, and
+confirmed the legitimate text was preserved while only the
+malicious script content was removed.
