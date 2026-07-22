@@ -1,15 +1,22 @@
-Add password complexity requirements and prepare for reuse prevention
+Add account lockout after repeated failed login attempts
 
-Strengthened the password validation schema to require a minimum
-of 8 characters, at least one uppercase letter, one lowercase
-letter, one number, and one special character, replacing the
-previous minimum of just 6 characters with no complexity rules at
-all. This satisfies the coursework requirement for a robust
-password policy.
+Implemented per-account lockout as a second, independent layer of
+brute force protection alongside the existing IP based rate
+limiting from SEC-08. Rate limiting alone only protects against
+fast automated attacks from a single IP, but does not stop an
+attacker who spaces out attempts or distributes them across
+multiple IP addresses to stay under the rate limit threshold.
 
-Added a passwordHistory field to the user schema and type
-definitions, storing an array of previous password hashes, marked
-select false so it is hidden by default from normal queries. This
-lays the groundwork for password reuse prevention on password
-change, preventing users from cycling back to a recently used
-password.
+Added failedLoginAttempts and lockedUntil fields to the user
+schema. Each failed login attempt increments the counter for that
+specific account. After 5 failed attempts, the account is locked
+for 15 minutes regardless of which IP the requests come from,
+returning a clear locked message with the remaining time. A
+successful login resets both the failed attempt counter and any
+active lock.
+
+This works together with the existing rate limiter as layered
+defense in depth, rate limiting blocks fast bursts immediately,
+while account lockout protects against slower or distributed brute
+force attempts that might otherwise stay under the rate limiting
+threshold.

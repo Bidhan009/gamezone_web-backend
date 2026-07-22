@@ -8,6 +8,8 @@ import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 import { encrypt, decrypt } from "../utils/encryption";
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 let userRepository = new UserRepository();
 
 export class UserService {
@@ -30,20 +32,42 @@ export class UserService {
     const newUser = await userRepository.createUser(userToCreate);
     return decryptUserPhone(newUser.toObject ? newUser.toObject() : newUser);
 }
-    async loginUser(data: LoginUserDTO){
 
-        const user =  await userRepository.getUserByEmail(data.email);
+async loginUser(data: LoginUserDTO) {
+    const user = await userRepository.getUserByEmail(data.email);
+    if (!user) {
+        throw new HttpError(404, "User not found");
+    }
 
-        if(!user){
-            throw new HttpError(404, "User not found");
+    // Check if account is currently locked
+    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+        const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+        throw new HttpError(423, `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`);
+    }
+
+    const validPassword = await bcryptjs.compare(data.password, user.password);
+    if (!validPassword) {
+        const attempts = (user.failedLoginAttempts || 0) + 1;
+        const updateData: any = { failedLoginAttempts: attempts };
+
+        if (attempts >= MAX_FAILED_ATTEMPTS) {
+            updateData.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
         }
-        // compare password
-        const validPassword = await bcryptjs.compare(data.password, user.password);
-        // plaintext, hashed
 
-        if(!validPassword){
-            throw new HttpError(401, "Invalid credentials");
-        }
+        await userRepository.updateUser(user._id.toString(), updateData);
+        throw new HttpError(401, "Invalid credentials");
+    }
+
+    // Successful login — reset lockout counters
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+        await userRepository.updateUser(user._id.toString(), {
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        } as any);
+    }
+
+    // ...rest of existing MFA/token logic unchanged...
+
         // If MFA is enabled, don't issue the real token yet —
         // require the second factor first
         if (user.mfaEnabled) {
