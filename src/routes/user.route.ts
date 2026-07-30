@@ -15,6 +15,10 @@ router.put("/", ...uploads.single('profileImage'), userController.updateUser);
 // router.get("/:id", userController.getUserById);
 router.delete("/", userController.deleteUser);
 
+// Must stay above "/:id" — otherwise Express matches "export"/"import" as an :id param (see SEC-03)
+router.get("/export", userController.exportData);
+router.post("/import", userController.importData);
+
 // These two now require admin — regular users should never list/view other accounts
 router.get("/", adminMiddleware, userController.getAllUsers);
 router.get("/:id", adminMiddleware, userController.getUserById);
