@@ -1,6 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
 import { UserType } from "../types/user.type";
-import { string } from "zod";
 const UserSchema: Schema = new Schema<UserType>(
     {
         fullName: { type: String, required: true },
@@ -12,7 +11,7 @@ const UserSchema: Schema = new Schema<UserType>(
             default: 'user',
         },
         profileImage: { type: String, default: null },
-        phone: {type:string, default:null},
+        phone: { type: String, default: null },
         mfaSecret: { type: String, default: null, select: false },  // NEW — never returned by default
         mfaEnabled: { type: Boolean, default: false },   
         passwordHistory: { type: [String], default: [], select: false },
