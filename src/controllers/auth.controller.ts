@@ -17,13 +17,21 @@ export class AuthController {
         try {
             const parsedData = CreateUserDTO.safeParse(req.body);
             if (!parsedData.success) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: z.prettifyError(parsedData.error) 
+                return res.status(400).json({
+                    success: false,
+                    message: z.prettifyError(parsedData.error)
                 });
             }
 
-            const newUser = await userService.createUser(parsedData.data);
+            const createData = parsedData.data;
+
+            // Handle profile picture from Multer
+            if (req.file) {
+                // store relative path so frontend can prefix API base URL later
+                createData.profileImage = `/uploads/${req.file.filename}`;
+            }
+
+            const newUser = await userService.createUser(createData);
             logSecurityEvent("USER_REGISTERED", {
                 userId: newUser._id,
                 email: newUser.email,

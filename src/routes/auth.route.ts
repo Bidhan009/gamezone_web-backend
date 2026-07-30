@@ -8,7 +8,13 @@ import { verifyCaptcha } from "../middleware/captcha.middleware";
 let authController = new AuthController();
 const router = Router();
 
-router.post("/register", registerLimiter, verifyCaptcha, authController.register) // implementing captcha
+router.post(
+    "/register",
+    registerLimiter,
+    ...uploads.single("profileImage"),
+    verifyCaptcha,
+    authController.register
+); // implementing captcha
 router.post("/login", loginLimiter, verifyCaptcha, authController.login) // implementing captcha
 router.post("/logout", authorizationMiddleware, authController.logout);
 router.get("/whoami", authorizationMiddleware, authController.getProfile);
