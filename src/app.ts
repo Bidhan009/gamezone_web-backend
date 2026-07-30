@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
 import cors from 'cors';
@@ -27,6 +27,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(generalLimiter);
 
 // Serve static files from uploads directory
+// helmet's default Cross-Origin-Resource-Policy (same-origin) blocks the
+// frontend (a different origin/port) from rendering these images — relax it
+// just for this route since uploads are meant to be embedded cross-origin.
+app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+});
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes
