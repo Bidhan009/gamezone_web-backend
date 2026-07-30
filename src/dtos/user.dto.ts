@@ -36,3 +36,11 @@ export const UpdateUserDTO = UserSchema.pick({
 }).partial();
 
 export type UpdateUserDTO = z.infer<typeof UpdateUserDTO>;
+
+export const ImportUserDTO = z.object({
+    fullName: z.string().min(2).optional(),
+    phone: z.string().optional(),
+    profileImage: z.string().optional()
+}).strict();
+
+export type ImportUserDTO = z.infer<typeof ImportUserDTO>;
