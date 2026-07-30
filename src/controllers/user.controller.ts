@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
-import { CreateUserDTO, UpdateUserDTO } from "../dtos/user.dto";
+import { CreateUserDTO, UpdateUserDTO, ImportUserDTO } from "../dtos/user.dto";
 import { AuthRequest } from "../middleware/auth.middleware";
 import z from "zod";
 
@@ -88,6 +88,62 @@ export class UserController {
             return res.status(error.statusCode || 500).json({
                 success: false,
                 message: error.message || "Failed to delete user"
+            });
+        }
+    }
+
+    async exportData(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?._id;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "User not authenticated"
+                });
+            }
+
+            const data = await userService.exportUserData(userId);
+
+            res.setHeader("Content-Type", "application/json");
+            res.setHeader("Content-Disposition", "attachment; filename=account-data.json");
+            return res.status(200).send(JSON.stringify(data, null, 2));
+        } catch (error: any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to export user data"
+            });
+        }
+    }
+
+    async importData(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?._id;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "User not authenticated"
+                });
+            }
+
+            const payload = req.body?.account ?? req.body;
+            const parsedData = ImportUserDTO.safeParse(payload);
+            if (!parsedData.success) {
+                return res.status(400).json({
+                    success: false,
+                    message: z.prettifyError(parsedData.error)
+                });
+            }
+
+            const updatedUser = await userService.importUserData(userId, parsedData.data);
+            return res.status(200).json({
+                success: true,
+                message: "User data imported successfully",
+                data: updatedUser
+            });
+        } catch (error: any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to import user data"
             });
         }
     }
