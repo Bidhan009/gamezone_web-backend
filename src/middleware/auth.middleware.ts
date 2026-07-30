@@ -20,13 +20,30 @@ export interface AuthRequest extends Request {
 }
 let userRepository = new UserRepository();
 
+// Pulls a cookie value out of the raw Cookie header without pulling in cookie-parser
+const getCookieValue = (req: Request, name: string): string | undefined => {
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) return undefined;
+    for (const pair of cookieHeader.split(";")) {
+        const [key, ...rest] = pair.trim().split("=");
+        if (key === name) {
+            return decodeURIComponent(rest.join("="));
+        }
+    }
+    return undefined;
+};
+
 export const authorizationMiddleware = async(req: Request, res: Response, next: NextFunction) =>{
     try{
         const authHeader = req.headers.authorization;
-        if(!authHeader || !authHeader.startsWith("Bearer")){
-            throw new HttpError(401, "Unauthorized, header malformed");
+        // Bearer header takes priority; fall back to the auth cookie so
+        // browser-driven requests (e.g. file downloads) stay authenticated.
+        let token: string | undefined;
+        if (authHeader && authHeader.startsWith("Bearer")) {
+            token = authHeader.split(" ")[1]; // "Beared <string>" [1] -> <string>
+        } else {
+            token = getCookieValue(req, "auth_token") || getCookieValue(req, "token");
         }
-        const token = authHeader.split(" ")[1]; // "Beared <string>" [1] -> <string>
         if(!token){
             throw new HttpError(401, "Unauthorized, token missing");
         }
