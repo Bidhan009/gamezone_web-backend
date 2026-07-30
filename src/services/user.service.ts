@@ -86,8 +86,8 @@ async loginUser(data: LoginUserDTO) {
             email: user.email,
             role: user.role
         }
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' }); 
-        return { token, user }
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+        return { token, user: decryptUserPhone(user.toObject ? user.toObject() : user) }
     }
     async verifyMfaLogin(mfaPendingToken: string, mfaCode: string) {
     let decoded: any;
@@ -124,7 +124,7 @@ async loginUser(data: LoginUserDTO) {
         role: user.role
     };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-    return { token, user };
+    return { token, user: decryptUserPhone(user.toObject ? user.toObject() : user) };
 }
 
     async getUserById(userId: string) {
