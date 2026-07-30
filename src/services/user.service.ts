@@ -1,4 +1,4 @@
-import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from "../dtos/user.dto";
+import { CreateUserDTO, LoginUserDTO, UpdateUserDTO, ImportUserDTO } from "../dtos/user.dto";
 import { UserRepository } from "../repositories/user.repository";
 import  bcryptjs from "bcryptjs"
 import { HttpError } from "../errors/http-error";
@@ -24,6 +24,7 @@ export class UserService {
     data.password = hashedPassword;
 
     // Encrypt phone before storing, if provided
+    // role is never client-writable; it is set by the server
     const userToCreate: any = { ...data, role: "user" };
     if (userToCreate.phone) {
         userToCreate.phone = encrypt(userToCreate.phone);
@@ -219,6 +220,33 @@ async verifyAndEnableMfa(userId: string, token: string) {
 
     await userRepository.updateUser(userId, { mfaEnabled: true } as any);
     return { message: "MFA enabled successfully" };
+}
+
+async exportUserData(userId: string) {
+    const user = await userRepository.getUserById(userId);
+    if (!user) {
+        throw new HttpError(404, "User not found");
+    }
+    const decrypted = decryptUserPhone(user.toObject ? user.toObject() : user);
+
+    return {
+        exportedAt: new Date().toISOString(),
+        account: {
+            fullName: decrypted.fullName,
+            email: decrypted.email,
+            phone: decrypted.phone,
+            profileImage: decrypted.profileImage,
+            role: decrypted.role,
+            mfaEnabled: decrypted.mfaEnabled,
+            createdAt: decrypted.createdAt,
+        },
+    };
+}
+
+async importUserData(userId: string, data: ImportUserDTO) {
+    // Reuses updateUser so phone is encrypted at rest exactly like every
+    // other write path, then decryptUserPhone strips password/mfaSecret.
+    return this.updateUser(userId, data);
 }
 }
 
