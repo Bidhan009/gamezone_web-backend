@@ -18,7 +18,7 @@ const logger = winston.createLogger({
 });
 
 // Helper for consistent, structured security event logging.
-// IMPORTANT: never pass passwords, tokens, or other secrets into
+// IMPORTANT: should never pass passwords, tokens, or other secrets into
 // the `details` object — only log identifying/contextual info.
 export const logSecurityEvent = (
     event: string,

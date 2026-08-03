@@ -2,7 +2,7 @@ import multer from "multer";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import fs from "fs";
-import { fileTypeFromFile } from "file-type";
+import * as FileType from "file-type";
 
 // Ensure the uploads directory exists
 // __dirname is the directory of the current module
@@ -48,9 +48,9 @@ const verifyRealFileType = async (req: any, res: any, next: any) => {
         : [];
 
     for (const file of files) {
-        const detected = await fileTypeFromFile(file.path);
+        const detected = await FileType.fromFile(file.path);   // CHANGED from: fileTypeFromFile(file.path)
         if (!detected || !ALLOWED_MIME_TYPES.includes(detected.mime)) {
-            fs.unlinkSync(file.path); // delete the disguised file immediately
+            fs.unlinkSync(file.path);
             return res.status(400).json({
                 success: false,
                 message: "File content does not match an allowed image type."

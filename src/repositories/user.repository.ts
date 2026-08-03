@@ -19,6 +19,7 @@ export class UserRepository implements IUserRepository {
     }
     async getUserByEmail(email: string): Promise<IUser | null> {
     const user = await UserModel.findOne({ email: email })
+        .select('+mfaEnabled')
         .collation({ locale: "en", strength: 2 });
     return user;
     }

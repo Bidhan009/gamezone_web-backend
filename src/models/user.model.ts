@@ -12,8 +12,8 @@ const UserSchema: Schema = new Schema<UserType>(
         },
         profileImage: { type: String, default: null },
         phone: { type: String, default: null },
-        mfaSecret: { type: String, default: null, select: false },  // NEW — never returned by default
-        mfaEnabled: { type: Boolean, default: false },   
+        mfaSecret: { type: String, default: null},  // NEW — never returned by default
+        mfaEnabled: { type: Boolean, default: false, select: false },   
         passwordHistory: { type: [String], default: [], select: false },
         failedLoginAttempts: { type: Number, default: 0 },   // ADD
         lockedUntil: { type: Date, default: null },
